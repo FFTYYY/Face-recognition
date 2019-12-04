@@ -1,0 +1,1 @@
+python -W ignore visualize_cifar10.py --no_log --model_save=resnet_5.pkl --file=./visualize_data/1.jpg
