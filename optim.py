@@ -6,8 +6,8 @@ import torch.optim as optim
 import numpy as np
 from config import logger
 
-class MyAdam(optim.Optimizer):
-	def __init__(self, params , d_model, n_warmup_steps , init_steps  , step_size):
+class WarmAdam(optim.Optimizer):
+	def __init__(self, params , d_model, n_warmup_steps , init_steps = 0 , step_size = 1):
 		self.init_lr = np.power(d_model, -0.5)
 		self._optimizer = optim.Adam(params = params , lr = self.init_lr , betas = (0.9,0.98))
 		self.n_warmup_steps = n_warmup_steps
@@ -41,6 +41,30 @@ class MySGD(optim.Optimizer):
 		self.now_step = 0
 		self.now_lr = lr
 		self.barriers = [32000 , 48000]
+
+	def step(self):
+		self._update_learning_rate()
+		self._optimizer.step()
+
+	def zero_grad(self):
+		self._optimizer.zero_grad()
+
+	def _update_learning_rate(self):
+
+		self.now_step += 1
+		if self.now_step in self.barriers:
+			self.now_lr *= 0.1
+			logger.log("now lr changing.... new lr = %.4f" % (self.now_lr))
+			for param_group in self._optimizer.param_groups:
+				param_group['lr'] = self.now_lr
+
+
+class StepAdam(optim.Optimizer):
+	def __init__(self, params , lr):
+		self._optimizer = optim.Adam(params = params , lr = lr , weight_decay = 1e-4)
+		self.now_step = 0
+		self.now_lr = lr
+		self.barriers = [2000 , 4000]
 
 	def step(self):
 		self._update_learning_rate()

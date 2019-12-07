@@ -15,12 +15,10 @@ from tqdm import tqdm
 import torchvision
 import torchvision.transforms as transforms
 
-from model.multi_dim_transformer import Model as MD_Transformer
 from model.resnet import Model as ResNet
-from model.att_resnet import Model as Att_Resnet
 
 from dataloader_lfw import load_data as load_data_lfw
-from optim import MyAdam , MySGD
+from optim import *
 from utils.confirm_tensor import tensor_feature
 
 import pdb
@@ -33,13 +31,10 @@ data_loaders = {
 	"lfw" 			: load_data_lfw,
 }
 
-data = data_loaders[C.data](dataset_location = C.data_path)
-
-train_data , test_data = data["train"] , data["test"]
+train_data , test_data = data_loaders[C.data](dataset_location = C.data_path)
 
 trainloader = tc.utils.data.DataLoader(train_data , batch_size = C.batch_size , shuffle = True , num_workers = 2)
 testloader  = tc.utils.data.DataLoader(test_data  , batch_size = 20 		  , shuffle = False, num_workers = 2)
-#batch_size should be able to be deviced by 10000
 
 logger.log ("Data load done.")
 
@@ -50,7 +45,7 @@ models = {
 	"resnet" 		: ResNet,
 }
 model = models[C.model]
-net = model(num_class = 2 , input_size = [32,32] ,
+net = model(num_class = 2 , input_size = [C.fmap_size[0] , C.fmap_size[0]] ,
 	**{x : C.__dict__[x] for x in model.choose_kwargs()}
 )
 
@@ -99,8 +94,8 @@ best_epoch = 0.
 
 #optimizer
 optims = {
-	"myadam" : lambda : MyAdam(params = net.parameters() , d_model = C.d_model , 
-					n_warmup_steps = 4000 , init_steps = C.init_steps , step_size = C.step_size) ,
+	"warm_adam" : lambda : WarmAdam(params = net.parameters() , d_model = 256 , n_warmup_steps = 4000) ,
+	"step_adam" : lambda : StepAdam(params = net.parameters() , lr = C.lr) ,
 	"mysgd"  : lambda : MySGD (params = net.parameters() , lr = C.lr) , 
 	"adam" 	 : lambda : tc.optim.Adam(params = net.parameters() , lr = C.lr) , 
 	"sgd" 	 : lambda : tc.optim.SGD (params = net.parameters() , lr = C.lr) , 
@@ -113,7 +108,7 @@ optim = optims[C.optim]()
 loss_func = nn.CrossEntropyLoss()
 
 net = nn.DataParallel(net , C.gpus)
-net = net.cuda()
+#net = net.cuda()
 
 tot_step = 0
 for epoch_num in range(C.n_epochs):
@@ -140,7 +135,7 @@ for epoch_num in range(C.n_epochs):
 		pbar.set_postfix_str("Train Acc : %d/%d = %.4f%%" % (good_hit , tota_hit , 100 * good_hit / tota_hit))
 		tot_step += 1
 
-	valid_res = valid(net , data[C.valid_data] , epoch_num = epoch_num)
+	valid_res = valid(net , test_data , epoch_num = epoch_num)
 
 	logger.log("Epoch %d ended." % (epoch_num + 1))
 	logger.log("Train Acc : %d/%d = %.4f%%" % (good_hit , tota_hit , 100 * good_hit / tota_hit))

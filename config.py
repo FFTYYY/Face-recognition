@@ -23,20 +23,25 @@ _par.add_argument("--model" 		, type = str , default = "resnet" , choices = [
 _par.add_argument("--drop_p" 		, type = float , default = 0.0)
 
 #model resnet
-_par.add_argument("--fmap_size" 	, type = str , default = "32,16,8")
-_par.add_argument("--filter_num" 	, type = str , default = "16,32,64")
+_par.add_argument("--fmap_size" 	, type = str , default = "128,64,32")
+_par.add_argument("--filter_num" 	, type = str , default = "64,128,258")
 _par.add_argument("--nores" 		, action = "store_true" , default = False)
+_par.add_argument("--n" 			, type = int , default = 1)
 
 #train & test
 _par.add_argument("--batch_size" 	, type = int , default = 64)
-_par.add_argument("--n_epochs" 		, type = int , default = 32)
+_par.add_argument("--n_epochs" 		, type = int , default = 50)
 _par.add_argument("--lr" 			, type = float , default = 1e-3)
 _par.add_argument("--gpus" 			, type = str , default = "0")
 _par.add_argument("--valid_size" 	, type = int , default = 1000)
-_par.add_argument("--init_steps" 	, type = int , default = 0)
-_par.add_argument("--step_size" 	, type = int , default = 1)
 _par.add_argument("--valid_data" 	, type = str , default = "test")
-_par.add_argument("--optim" 		, type = str , default = "myadam" , choices = ["myadam" , "adam" , "sgd" , "mysgd"])
+_par.add_argument("--optim" 		, type = str , default = "myadam" , choices = [
+	"step_adam" ,
+	"warm_adam" ,
+	"adam" ,
+	"sgd" ,
+	"mysgd" , 
+])
 
 
 #solely test

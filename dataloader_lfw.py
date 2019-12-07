@@ -12,19 +12,20 @@ import pickle
 import random
 import PIL
 import copy
+from config import C
 
 dataset_loc = ""
 
 transform_train = transforms.Compose([
-	transforms.Resize(32),
-	transforms.RandomCrop(32 , padding = 4),
-	transforms.RandomHorizontalFlip(),
+	transforms.Resize(C.fmap_size[0]),
+	#transforms.RandomCrop(C.fmap_size[0] , padding = 32),
+	#transforms.RandomHorizontalFlip(),
 	transforms.ToTensor(),
 	transforms.Normalize(mean = [0.491 , 0.482 , 0.447] , std = [0.247 , 0.243 , 0.262]),
 ])
 
 transform_test  = transforms.Compose([	
-	transforms.Resize(32),
+	transforms.Resize(C.fmap_size[0]),
 	transforms.ToTensor(),
 	transforms.Normalize(mean = [0.491 , 0.482 , 0.447] , std = [0.247 , 0.243 , 0.262]),
 ])
@@ -48,9 +49,12 @@ def load_a_set(fil , trans):
 	for i in range(num_posi):
 		person_name , id1 , id2 = fil.readline().strip().split("\t")
 		datas.append(
-			[
-				load_a_image(person_name , id1 , trans) , 
-				load_a_image(person_name , id2 , trans) , 
+			[	
+				(
+					load_a_image(person_name , id1 , trans) , 
+					load_a_image(person_name , id2 , trans) , 				
+				) , 
+
 				1 , 
 			]
 		)
@@ -61,8 +65,10 @@ def load_a_set(fil , trans):
 		person_name_1 , id1 , person_name_2 , id2 = got
 		datas.append(
 			[
-				load_a_image(person_name_1 , id1 , trans) , 
-				load_a_image(person_name_2 , id2 , trans) , 
+				(
+					load_a_image(person_name_1 , id1 , trans) , 
+					load_a_image(person_name_2 , id2 , trans) , 
+				) , 
 				0 , 
 			]
 		)
@@ -77,6 +83,11 @@ def load_data(dataset_location = "./datas"):
 		train_data = load_a_set(fil , transform_train)
 	with open(jpath("pairsDevTest.txt") , "r" , encoding = "utf-8") as fil:
 		test_data = load_a_set(fil , transform_test)
+
+	for data in train_data:
+		data[0] = tc.cat([data[0][0].unsqueeze(0) , data[0][1].unsqueeze(0)] , dim = 0)
+	for data in test_data:
+		data[0] = tc.cat([data[0][0].unsqueeze(0) , data[0][1].unsqueeze(0)] , dim = 0)
 
 	random.shuffle(train_data)
 	random.shuffle(test_data)
